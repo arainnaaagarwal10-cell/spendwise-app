@@ -178,11 +178,16 @@ class handler(BaseHTTPRequestHandler):
         return {}
 
     def get_request_path(self):
+        parsed_self = urlparse(self.path)
+        qs = parse_qs(parsed_self.query)
+        if 'path' in qs and qs['path']:
+            subpath = qs['path'][0].lstrip('/')
+            return f"/api/{subpath}"
+
         raw_path = self.headers.get('x-forwarded-uri') or self.headers.get('x-matched-path') or self.path
         parsed = urlparse(raw_path)
         path = parsed.path.rstrip('/')
         if path == '/api/index.py' or path == '/api' or not path:
-            parsed_self = urlparse(self.path)
             path = parsed_self.path.rstrip('/')
         return path
 
