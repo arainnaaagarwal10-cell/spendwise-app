@@ -216,18 +216,30 @@ class handler(BaseHTTPRequestHandler):
         return {}
 
     def get_request_path(self):
+        raw_path = self.headers.get('x-forwarded-uri') or self.headers.get('x-matched-path') or self.path
+        parsed_raw = urlparse(raw_path)
+        raw_clean = parsed_raw.path.rstrip('/')
+        
         parsed_self = urlparse(self.path)
         qs = parse_qs(parsed_self.query)
+        
         if 'path' in qs and qs['path']:
             subpath = qs['path'][0].lstrip('/')
-            return f"/api/{subpath}" if subpath else "/api"
+            if subpath:
+                return f"/api/{subpath}"
+            elif raw_clean in ['', '/']:
+                return '/'
 
-        raw_path = self.headers.get('x-forwarded-uri') or self.headers.get('x-matched-path') or self.path
-        parsed = urlparse(raw_path)
-        path = parsed.path.rstrip('/')
-        if path == '/api/index.py' or path == '/api' or not path:
+        if raw_clean in ['', '/', '/index.html']:
+            return '/'
+            
+        if raw_clean in ['/style.css', '/app.js']:
+            return raw_clean
+
+        path = raw_clean
+        if path == '/api/index.py' or path == '/api':
             path = parsed_self.path.rstrip('/')
-        return path or '/api'
+        return path or '/'
 
     # ── GET Routes ─────────────────────────────────────────────────────────
     def do_GET(self):
