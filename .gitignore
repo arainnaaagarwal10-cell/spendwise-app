@@ -1,0 +1,28 @@
+# Ignore local SQLite database (use Supabase in production)
+spendwise.db
+
+# Python artifacts
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.pyc
+
+# Local server
+server.py
+
+# Environment variables (NEVER commit real credentials)
+.env
+.env.local
+.env.production
+
+# Test files
+test_api.py
+
+# OS artifacts
+.DS_Store
+Thumbs.db
+
+# Task tracking (internal)
+task.md

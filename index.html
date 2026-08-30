@@ -1,0 +1,1457 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>SpendWise — Smart Financial Companion for Tech-Savvy Teens</title>
+    <meta name="description" content="SpendWise helps teens track pocket money, prevent impulse buys with a 48-hour cool-off timer, save for goals, and master financial skills through gamified quizzes.">
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- FontAwesome Icons CDN -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Canvas Confetti CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    
+    <!-- App Styles -->
+    <link rel="stylesheet" href="style.css">
+    
+    <!-- Critical baseline styles: ensure dark background always renders -->
+    <style>
+        html, body {
+            margin: 0; padding: 0;
+            background-color: #0b0f19;
+            color: #f8fafc;
+            font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+            min-height: 100vh;
+            overflow-x: hidden;
+            max-width: 100vw;
+        }
+        /* Ensure hidden elements stay hidden before JS runs */
+        #appMainContainer { display: none; }
+        .mobile-drawer-overlay { display: none; }
+        /* Auth screen always fills viewport */
+        #loginScreen {
+            position: fixed; top:0; left:0; right:0; bottom:0;
+            display: flex; align-items: center; justify-content: center;
+            background: #0b0f19; z-index: 2000; overflow-y: auto;
+        }
+    </style>
+</head>
+<body style="background:#0b0f19;">
+    <!-- 0. MANDATORY LOGIN & REGISTRATION FIRST SCREEN -->
+    <div class="auth-screen-container" id="loginScreen">
+        <div class="auth-card">
+            <div class="auth-brand">
+                <div class="brand-logo lg"><span>S</span></div>
+                <h1 class="auth-title">SpendWise</h1>
+                <p class="auth-subtitle">Smart Financial Companion for Tech-Savvy Teens</p>
+            </div>
+
+            <div class="auth-tabs">
+                <button type="button" class="auth-tab-btn active" id="tabBtnRegister">Create Account</button>
+                <button type="button" class="auth-tab-btn" id="tabBtnLogin">Sign In</button>
+            </div>
+
+            <!-- Create Account Form -->
+            <form class="auth-form" id="formRegister">
+                <div class="auth-notice" id="authNotice">
+                    <i class="fa-solid fa-sparkles"></i> Select your role and start your SpendWise journey!
+                </div>
+
+                <div class="form-group">
+                    <label>Account Role *</label>
+                    <div class="role-selector" id="roleSelector">
+                        <button type="button" class="role-opt active" data-role="teen">
+                            <span class="r-icon">🎯</span>
+                            <span>Teen User</span>
+                        </button>
+                        <button type="button" class="role-opt" data-role="parent">
+                            <span class="r-icon">🛡️</span>
+                            <span>Parent / Guardian</span>
+                        </button>
+                        <button type="button" class="role-opt" data-role="admin">
+                            <span class="r-icon">👑</span>
+                            <span>Admin Manager</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Your Name *</label>
+                    <input type="text" id="regName" placeholder="e.g. Siya, Sarah, Arainnaa" required />
+                </div>
+
+                <!-- Account Credentials (required for all roles) -->
+                <div style="background: rgba(99,102,241,0.08); border: 1px solid rgba(99,102,241,0.25); padding: 14px; border-radius: 12px; margin-bottom: 16px;" id="regCredentialsBox">
+                    <div style="font-size: 0.8rem; font-weight: 700; color: #a5b4fc; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; gap: 6px;">
+                        <i class="fa-solid fa-key"></i> Create Your Login Credentials
+                    </div>
+                    <div class="form-group" style="margin-bottom: 10px;">
+                        <label>Username *</label>
+                        <input type="text" id="regUsername" placeholder="Choose a username" autocomplete="username" required />
+                    </div>
+                    <div class="form-group" style="margin-bottom: 10px;">
+                        <label>Password *</label>
+                        <div class="password-input-wrap">
+                            <input type="password" id="regPassword" placeholder="Choose a password" autocomplete="new-password" required />
+                            <button type="button" class="toggle-pw-btn" onclick="togglePasswordVisibility('regPassword', this)" tabindex="-1"><i class="fa-solid fa-eye"></i></button>
+                        </div>
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label>Confirm Password *</label>
+                        <div class="password-input-wrap">
+                            <input type="password" id="regConfirmPassword" placeholder="Re-enter your password" autocomplete="new-password" required />
+                            <button type="button" class="toggle-pw-btn" onclick="togglePasswordVisibility('regConfirmPassword', this)" tabindex="-1"><i class="fa-solid fa-eye"></i></button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Admin-only notice (no credentials shown) -->
+                <div id="adminAuthFields" style="display:none; background: rgba(234,179,8,0.08); border: 1px dashed rgba(234,179,8,0.35); padding: 12px 14px; border-radius: 12px; margin-bottom: 16px; font-size:0.82rem; color:#facc15;">
+                    <i class="fa-solid fa-shield-halved"></i> <strong>Admin access is restricted.</strong> Only authorised administrators can create an Admin account.
+                </div>
+
+                <div class="form-group">
+                    <label>Monthly Pocket Money / Allowance (₹) *</label>
+                    <input type="number" id="regPocketMoney" placeholder="e.g. 4000" min="0" value="4000" required />
+                </div>
+
+                <div class="form-group">
+                    <label>Choose Your Avatar</label>
+                    <div class="avatar-selector" id="avatarSelector">
+                        <button type="button" class="avatar-opt active" data-avatar="🎯">🎯</button>
+                        <button type="button" class="avatar-opt" data-avatar="👑">👑</button>
+                        <button type="button" class="avatar-opt" data-avatar="🛡️">🛡️</button>
+                        <button type="button" class="avatar-opt" data-avatar="🚀">🚀</button>
+                        <button type="button" class="avatar-opt" data-avatar="⚡">⚡</button>
+                        <button type="button" class="avatar-opt" data-avatar="🎮">🎮</button>
+                        <button type="button" class="avatar-opt" data-avatar="🎧">🎧</button>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn-primary btn-full btn-lg">
+                    <i class="fa-solid fa-user-plus"></i> Create Account & Get Started
+                </button>
+            </form>
+
+            <!-- Sign In Form -->
+            <form class="auth-form" id="formLogin" style="display:none;" autocomplete="on">
+                <p class="auth-section-title" style="margin-bottom:14px;"><i class="fa-solid fa-lock-open" style="margin-right:6px;"></i>Enter your credentials to sign in:</p>
+
+                <div class="form-group">
+                    <label>Username *</label>
+                    <input type="text" id="loginUsername" placeholder="Enter your username" autocomplete="username" required />
+                </div>
+
+                <div class="form-group">
+                    <label>Password *</label>
+                    <div class="password-input-wrap">
+                        <input type="password" id="loginPassword" placeholder="Enter your password" autocomplete="current-password" required />
+                        <button type="button" class="toggle-pw-btn" onclick="togglePasswordVisibility('loginPassword', this)" tabindex="-1"><i class="fa-solid fa-eye"></i></button>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn-primary btn-full btn-lg" id="btnSignInSubmit">
+                    <i class="fa-solid fa-right-to-bracket"></i> Sign In
+                </button>
+
+                <!-- Saved profiles quick-select -->
+                <div style="margin-top:18px; padding-top:14px; border-top:1px solid rgba(255,255,255,0.08);">
+                    <p class="auth-section-title" style="font-size:0.8rem; margin-bottom:10px; opacity:0.7;">Or pick a saved profile (still requires password):</p>
+                    <div class="user-profiles-grid" id="userProfilesGrid">
+                        <!-- Injected dynamically by app.js -->
+                    </div>
+                </div>
+            </form>
+
+            <div class="demo-quick-login">
+                <span class="divider-text">OR TEST PRESET DATA</span>
+                <button type="button" class="btn-secondary btn-full" id="btnQuickDemoLogin">
+                    <i class="fa-solid fa-user-astronaut"></i> Quick Demo as Siya (Preset Demo)
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mobile Slide-over Drawer Navigation (hidden by default, JS shows it) -->
+    <div class="mobile-drawer-overlay" id="mobileDrawerOverlay">
+        <div class="mobile-drawer">
+            <div class="mobile-drawer-header">
+                <div class="sidebar-brand">
+                    <div class="brand-logo"><span class="brand-logo-letter">S</span></div>
+                    <div class="brand-info">
+                        <h1 class="brand-title">SpendWise</h1>
+                        <span class="brand-subtitle">Money, but smarter.</span>
+                    </div>
+                </div>
+                <button class="btn-close-drawer" id="btnCloseDrawer">&times;</button>
+            </div>
+            <div class="user-level-card">
+                <div class="avatar-box" id="drawerUserAvatar">🎯</div>
+                <div class="user-level-details">
+                    <span class="user-name" id="drawerUserName">Teen</span>
+                    <span class="user-level-badge" id="drawerUserBadge">Level 1</span>
+                </div>
+            </div>
+            <nav class="nav-menu">
+                <button class="nav-item active" data-tab="overview"><i class="fa-solid fa-chart-pie"></i><span>Dashboard</span></button>
+                <button class="nav-item" data-tab="expenses"><i class="fa-solid fa-receipt"></i><span>Expenses</span></button>
+                <button class="nav-item" data-tab="goals"><i class="fa-solid fa-bullseye"></i><span>Savings Goals</span></button>
+                <button class="nav-item" data-tab="impulse"><i class="fa-solid fa-hourglass-half"></i><span>Should I Buy This?</span></button>
+                <button class="nav-item" data-tab="learn"><i class="fa-solid fa-gamepad"></i><span>MoneyQuest</span></button>
+                <button class="nav-item" data-tab="profile"><i class="fa-solid fa-user-shield"></i><span>Badges & Profile</span></button>
+                <button class="nav-item" data-tab="admin" id="drawer-nav-admin" style="display:none;"><i class="fa-solid fa-crown text-amber"></i><span>Admin Manager</span></button>
+            </nav>
+            <div class="drawer-footer">
+                <button class="btn-logout" id="btnDrawerLogout"><i class="fa-solid fa-right-from-bracket"></i> Switch Account / Logout</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="app-container" id="appMainContainer" style="display:none;">
+        <!-- Desktop Sidebar Navigation -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-brand">
+                <div class="brand-logo">
+                    <span class="brand-logo-letter">S</span>
+                </div>
+                <div class="brand-info">
+                    <h1 class="brand-title">SpendWise</h1>
+                    <span class="brand-subtitle">Money, but smarter.</span>
+                </div>
+            </div>
+
+            <div class="user-level-card">
+                <div class="avatar-box" id="userAvatar">🎯</div>
+                <div class="user-level-details">
+                    <span class="user-name" id="sidebarUserName">Siya</span>
+                    <span class="user-level-badge" id="userLevelBadge"><i class="fa-solid fa-bolt"></i> Level 2</span>
+                </div>
+                <div class="xp-bar-container">
+                    <div class="xp-bar-fill" id="xpBarFill" style="width: 45%;"></div>
+                </div>
+                <div class="xp-text-row">
+                    <span id="xpCurrent">420 XP</span>
+                    <span id="xpNext">600 XP</span>
+                </div>
+            </div>
+
+            <nav class="nav-menu">
+                <button class="nav-item active" data-tab="overview" id="nav-overview">
+                    <i class="fa-solid fa-chart-pie"></i>
+                    <span>Dashboard</span>
+                </button>
+                <button class="nav-item" data-tab="expenses" id="nav-expenses">
+                    <i class="fa-solid fa-receipt"></i>
+                    <span>Expenses</span>
+                </button>
+                <button class="nav-item" data-tab="goals" id="nav-goals">
+                    <i class="fa-solid fa-bullseye"></i>
+                    <span>Savings Goals</span>
+                </button>
+                <button class="nav-item" data-tab="impulse" id="nav-impulse">
+                    <i class="fa-solid fa-hourglass-half"></i>
+                    <span>Should I Buy This?</span>
+                    <span class="badge-count" id="impulseBadgeCount" style="display:none;">0</span>
+                </button>
+                <button class="nav-item" data-tab="learn" id="nav-learn">
+                    <i class="fa-solid fa-gamepad"></i>
+                    <span>MoneyQuest</span>
+                </button>
+                <button class="nav-item" data-tab="profile" id="nav-profile">
+                    <i class="fa-solid fa-user"></i>
+                    <span>Profile & Badges</span>
+                </button>
+                <button class="nav-item" data-tab="parent" id="nav-parent" style="display:none;">
+                    <i class="fa-solid fa-user-shield"></i>
+                    <span>Parent Hub</span>
+                </button>
+                <button class="nav-item" data-tab="admin" id="nav-admin" style="display:none;">
+                    <i class="fa-solid fa-crown"></i>
+                    <span>Admin Panel</span>
+                </button>
+            </nav>
+
+            <div class="sidebar-footer">
+                <button class="btn-logout" id="btnSidebarLogout">
+                    <i class="fa-solid fa-right-from-bracket"></i> Switch Account
+                </button>
+                <button class="btn-reset margin-top-xs" id="btnResetDB">
+                    <i class="fa-solid fa-rotate-left"></i> Reset Demo Data
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <!-- Top App Bar -->
+            <header class="topbar">
+                <div class="topbar-left">
+                    <button class="btn-mobile-menu" id="btnMobileMenu" aria-label="Open menu">
+                        <i class="fa-solid fa-bars"></i>
+                    </button>
+                    <div class="mobile-brand">
+                        <div class="brand-logo-sm">S</div>
+                        <span>SpendWise</span>
+                    </div>
+                    <div class="page-title-box">
+                        <h2 class="page-title" id="pageTitle">Dashboard Overview</h2>
+                        <p class="page-subtitle" id="pageSubtitle">Track your pocket money, build savings habits & control impulse buys</p>
+                    </div>
+                </div>
+
+                <div class="topbar-right">
+                    <div class="role-pill" id="headerRolePill" title="Current Role">
+                        <span id="headerRoleBadge">Teen</span>
+                    </div>
+                    <div class="streak-pill" title="Daily Active Streak">
+                        <i class="fa-solid fa-fire"></i>
+                        <span id="streakCount">4</span> Days
+                    </div>
+                    <div class="points-pill" title="XP Points Balance">
+                        <i class="fa-solid fa-star"></i>
+                        <span id="headerPoints">420</span> XP
+                    </div>
+                    <button class="btn-primary btn-sm" id="btnQuickExpense">
+                        <i class="fa-solid fa-plus"></i> <span class="hide-mobile">Add Expense</span>
+                    </button>
+                    <button class="btn-icon-logout" id="btnLogout" title="Switch User / Logout">
+                        <i class="fa-solid fa-right-from-bracket"></i>
+                    </button>
+                </div>
+            </header>
+
+            <!-- Scrollable View Container -->
+            <div class="content-view">
+
+                <!-- FIRST-TIME USER STEP-BY-STEP ONBOARDING GUIDE BANNER -->
+                <div class="onboarding-guide-banner" id="onboardingBanner" style="display:none;">
+                    <div class="onboarding-guide-content">
+                        <div class="onboarding-step-badge" id="onboardingStepBadge">Step 1 of 4</div>
+                        <div class="onboarding-guide-text">
+                            <h4 id="onboardingStepTitle">Track Your First Expense!</h4>
+                            <p id="onboardingStepDesc">Click the <strong>+ Add Expense</strong> button to record your first purchase.</p>
+                        </div>
+                    </div>
+                    <button type="button" class="onboarding-action-btn" id="onboardingActionBtn">
+                        <span id="onboardingActionLabel">Add Expense</span> <i class="fa-solid fa-arrow-right"></i>
+                    </button>
+                </div>
+
+                <!-- 1. OVERVIEW DASHBOARD VIEW -->
+                <section class="tab-view active" id="view-overview">
+                    <!-- Section 1: Hero Allowance & Spending Pace Banner -->
+
+                    <div class="dashboard-hero-banner" id="heroAllowanceCard">
+                        <!-- Injected by app.js -->
+                    </div>
+
+                    <!-- Section 2: 2-Column Row (Money Coach + Spending Overview) -->
+                    <div class="dashboard-grid-2col margin-top">
+                        <!-- 🤖 Money Coach Dynamic Insight Card -->
+                        <div class="dashboard-card money-coach-card" id="moneyCoachCard">
+                            <!-- Injected by app.js -->
+                        </div>
+
+                        <!-- 📊 Your Spending Breakdown Card -->
+                        <div class="dashboard-card spending-overview-card" id="spendingOverviewCard">
+                            <!-- Injected by app.js -->
+                        </div>
+                    </div>
+
+                    <!-- Section 3: 2-Column Row (Savings Goal Spotlight + 48h Impulse Guard Spotlight) -->
+                    <div class="dashboard-grid-2col margin-top">
+                        <!-- 🎯 Savings Goal Spotlight Card -->
+                        <div class="dashboard-card goal-spotlight-card" id="goalSpotlightCard">
+                            <!-- Injected by app.js -->
+                        </div>
+
+                        <!-- 🛡️ Active 48h Impulse Guard Spotlight Card -->
+                        <div class="dashboard-card impulse-spotlight-card" id="impulseSpotlightCard">
+                            <!-- Injected by app.js -->
+                        </div>
+                    </div>
+
+                    <!-- Section 4: ⚡ Gamified Level & XP Progress Section -->
+                    <div class="dashboard-card xp-level-card margin-top" id="xpLevelCard">
+                        <!-- Injected by app.js -->
+                    </div>
+
+                    <!-- Section 5: Quick Actions Section (4 Distinct Feature Accent Cards) -->
+                    <div class="quick-actions-section margin-top">
+                        <div class="section-header">
+                            <h3><i class="fa-solid fa-bolt text-amber"></i> Quick Actions</h3>
+                            <p>Essential tools to make smarter money decisions</p>
+                        </div>
+                        <div class="quick-cards-grid">
+                            <!-- Card 1: Should I Buy This? (Pink Accent) -->
+                            <div class="quick-card card-impulse-action" onclick="openModal('modalImpulse')">
+                                <div class="quick-card-icon">
+                                    <i class="fa-solid fa-brain"></i>
+                                </div>
+                                <div class="quick-card-content">
+                                    <h4>Should I Buy This?</h4>
+                                    <p>48-hour cool-off pause for impulse purchases</p>
+                                </div>
+                                <div class="quick-card-action">
+                                    <span>Pause & Test</span> <i class="fa-solid fa-arrow-right"></i>
+                                </div>
+                            </div>
+
+                            <!-- Card 2: Log Expense (Emerald Accent) -->
+                            <div class="quick-card card-expense-action" onclick="openModal('modalExpense')">
+                                <div class="quick-card-icon">
+                                    <i class="fa-solid fa-receipt"></i>
+                                </div>
+                                <div class="quick-card-content">
+                                    <h4>Log Expense</h4>
+                                    <p>Track pocket money spent in seconds</p>
+                                </div>
+                                <div class="quick-card-action">
+                                    <span>Record Expense</span> <i class="fa-solid fa-arrow-right"></i>
+                                </div>
+                            </div>
+
+                            <!-- Card 3: Savings Goal (Teal Accent) -->
+                            <div class="quick-card card-goal-action" onclick="openModal('modalGoal')">
+                                <div class="quick-card-icon">
+                                    <i class="fa-solid fa-bullseye"></i>
+                                </div>
+                                <div class="quick-card-content">
+                                    <h4>Savings Goal</h4>
+                                    <p>Set targets for items you really want</p>
+                                </div>
+                                <div class="quick-card-action">
+                                    <span>Set Target</span> <i class="fa-solid fa-arrow-right"></i>
+                                </div>
+                            </div>
+
+                            <!-- Card 4: MoneyQuest (Purple Accent) -->
+                            <div class="quick-card card-quest-action" onclick="switchTab('learn')">
+                                <div class="quick-card-icon">
+                                    <i class="fa-solid fa-gamepad"></i>
+                                </div>
+                                <div class="quick-card-content">
+                                    <h4>MoneyQuest</h4>
+                                    <p>Level up financial IQ with trivia & quests</p>
+                                </div>
+                                <div class="quick-card-action">
+                                    <span>Play Quests</span> <i class="fa-solid fa-arrow-right"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Section 6: Recent Transactions Table -->
+                    <div class="dashboard-card full-width-card margin-top">
+                        <div class="card-header">
+                            <div>
+                                <h3><i class="fa-solid fa-clock-rotate-left text-indigo"></i> Recent Transactions</h3>
+                                <p>Latest logged pocket money expenses</p>
+                            </div>
+                            <button class="btn-secondary btn-sm" id="btnGoToExpenses">See All Expenses</button>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Item & Category</th>
+                                        <th>Date</th>
+                                        <th>Notes</th>
+                                        <th class="text-right">Amount</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="overviewExpenseTable">
+                                    <!-- Injected by app.js -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 2. EXPENSES TRACKER VIEW -->
+                <section class="tab-view" id="view-expenses">
+                    <div class="view-header-bar">
+                        <div class="filter-group">
+                            <button class="filter-chip active" data-category="ALL">All Categories</button>
+                            <button class="filter-chip" data-category="Food">🍔 Food & Drinks</button>
+                            <button class="filter-chip" data-category="Outings">☕ Outings</button>
+                            <button class="filter-chip" data-category="Tech">💻 Tech</button>
+                            <button class="filter-chip" data-category="Entertainment">🎟️ Movies</button>
+                            <button class="filter-chip" data-category="Shopping">🛍️ Shopping</button>
+                            <button class="filter-chip" data-category="Hobbies">📚 Hobbies</button>
+                        </div>
+                        <button class="btn-primary" id="btnOpenExpenseModal">
+                            <i class="fa-solid fa-plus"></i> Record New Expense
+                        </button>
+                    </div>
+
+                    <div class="expenses-summary-banner">
+                        <div class="banner-stat">
+                            <span class="lbl">Total Recorded Expenses</span>
+                            <span class="val" id="expensesViewTotal">₹1,750.00</span>
+                        </div>
+                        <div class="banner-stat">
+                            <span class="lbl">Average Spent per Transaction</span>
+                            <span class="val" id="expensesViewAvg">₹350.00</span>
+                        </div>
+                        <div class="banner-stat">
+                            <span class="lbl">XP Earned Tracking</span>
+                            <span class="val text-emerald">+50 XP</span>
+                        </div>
+                    </div>
+
+                    <div class="dashboard-card margin-top">
+                        <div class="table-responsive">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Expense Title</th>
+                                        <th>Category</th>
+                                        <th>Description</th>
+                                        <th class="text-right">Amount</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="fullExpenseTable">
+                                    <!-- Injected by app.js -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 3. SAVINGS GOALS VIEW -->
+                <section class="tab-view" id="view-goals">
+                    <div class="view-header-bar">
+                        <div>
+                            <h3>Target Savings & Wishlist</h3>
+                            <p>Allocate funds towards long-term items you want instead of impulse spending</p>
+                        </div>
+                        <button class="btn-primary" id="btnOpenGoalModal">
+                            <i class="fa-solid fa-plus"></i> Create Savings Goal
+                        </button>
+                    </div>
+
+                    <div class="goals-grid" id="goalsGrid">
+                        <!-- Injected by app.js -->
+                    </div>
+                </section>
+
+                <!-- 4. SHOULD I BUY THIS? IMPULSE TOOL VIEW -->
+                <section class="tab-view" id="view-impulse">
+                    <div class="impulse-hero-card">
+                        <div class="hero-text">
+                            <h2><i class="fa-solid fa-brain text-purple"></i> The 48-Hour Purchase Pause</h2>
+                            <p>Spotted something you want to buy right now? Pause! 80% of impulse buying desires fade away within 48 hours. Use this tool to save your pocket money.</p>
+                        </div>
+                        <button class="btn-gradient btn-lg" id="btnOpenImpulseModal">
+                            <i class="fa-solid fa-shield-cat"></i> Test An Item Now
+                        </button>
+                    </div>
+
+                    <div class="section-title-row">
+                        <h3><i class="fa-solid fa-clock-rotate-left"></i> Active & Past Impulse Evaluations</h3>
+                        <span class="text-muted">Earn +150 XP every time you decide NOT to buy an unnecessary want!</span>
+                    </div>
+
+                    <div class="impulse-grid" id="impulseGrid">
+                        <!-- Injected by app.js -->
+                    </div>
+                </section>
+
+                <!-- 5. QUIZZES & QUESTS VIEW -->
+                <section class="tab-view" id="view-learn">
+                    <!-- Cyber Fintech Arcade Top Toolbar -->
+                    <div class="cyber-quiz-toolbar">
+                        <div class="cyber-status-group">
+                            <span class="cyber-live-pulse"><i class="fa-solid fa-circle text-emerald"></i> ARENA LIVE</span>
+                            <div class="cyber-level-pill">
+                                <i class="fa-solid fa-gamepad text-indigo"></i>
+                                <span>LEVEL <strong id="hudLevelNum">1</strong> / <span id="hudTotalLevels">10,000</span></span>
+                            </div>
+                            <div class="cyber-tier-badge" id="hudTierBadge">
+                                <i class="fa-solid fa-shield-halved text-amber"></i> <span id="hudTierName">Novice Saver</span>
+                            </div>
+                        </div>
+
+                        <div class="cyber-controls-group">
+                            <!-- Level Quick Jump Bar -->
+                            <div class="cyber-jump-box">
+                                <input type="number" id="cyberJumpInput" min="1" max="10000" placeholder="Level #" title="Type Level number to jump!">
+                                <button type="button" class="btn-jump-level" id="btnCyberJump" title="Jump to Level">
+                                    <i class="fa-solid fa-bolt"></i> Jump
+                                </button>
+                            </div>
+
+                            <!-- World Stage Map Trigger -->
+                            <button class="cyber-map-btn" id="btnOpenWorldMap" title="View 10,000 Level Tiers Map">
+                                <i class="fa-solid fa-map-location-dot"></i> Stages Map
+                            </button>
+
+                            <!-- SFX Audio Synthesizer Toggle -->
+                            <button class="cyber-sfx-btn active" id="btnToggleSFX" title="Toggle Gaming Sound Effects">
+                                <i class="fa-solid fa-volume-high"></i> <span id="sfxStatusText">SFX ON</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="arcade-arena-container margin-top">
+                        <!-- Left Column: Prominent Arcade Trivia Card -->
+                        <div class="arcade-main-column">
+                            <!-- Boss Battle Banner Alert -->
+                            <div class="cyber-boss-banner" id="cyberBossBanner" style="display: none;">
+                                <div class="boss-title">
+                                    <i class="fa-solid fa-skull-crossbones text-amber"></i>
+                                    <span>BOSS BATTLE LEVEL <strong id="bossLevelNum">100</strong> - <span id="bossNameText">WALL STREET MEGACORP</span></span>
+                                </div>
+                                <div class="boss-xp-bonus"><i class="fa-solid fa-crown"></i> 2X XP & RARE BADGE</div>
+                            </div>
+
+                            <div class="arcade-card glass-card cyber-card-frame" id="arcadeGameCard">
+                                <!-- Card Header: Progress, Circular 15s Timer, Streak Multiplier -->
+                                <div class="arcade-card-header">
+                                    <div class="progress-box">
+                                        <span class="progress-text" id="arcadeProgressText">LEVEL 1 / 10,000</span>
+                                        <div class="progress-track-sm">
+                                            <div class="progress-bar-fill" id="arcadeProgressBar" style="width: 1%;"></div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Circular SVG 15s Countdown Timer -->
+                                    <div class="timer-ring-container" title="15s Time Limit">
+                                        <svg class="timer-ring-svg" width="56" height="56" viewBox="0 0 56 56">
+                                            <circle class="timer-ring-bg" cx="28" cy="28" r="23" />
+                                            <circle class="timer-ring-circle" id="timerRingCircle" cx="28" cy="28" r="23" />
+                                        </svg>
+                                        <span class="timer-ring-text" id="arcadeTimerText">15s</span>
+                                    </div>
+
+                                    <!-- Dedicated Quiz Mute Toggle Option -->
+                                    <button class="quiz-mute-btn active" id="btnQuizMuteToggle" title="Mute / Unmute Quiz Sound Effects">
+                                        <i class="fa-solid fa-volume-high" id="quizMuteIcon"></i>
+                                        <span id="quizMuteText">Mute</span>
+                                    </button>
+
+                                    <!-- Streak Multiplier Pill -->
+                                    <div class="streak-multiplier-badge" id="arcadeStreakBadge">
+                                        <i class="fa-solid fa-fire"></i> <span id="streakMultText">1x Streak</span>
+                                    </div>
+                                </div>
+
+                                <!-- Question Scenario Body -->
+                                <div class="arcade-question-body">
+                                    <div class="category-badge-pill" id="arcadeCategoryBadge">Smart Shopping</div>
+                                    <h3 class="question-scenario-title" id="arcadeQuestionTitle">
+                                        Loading Trivia Challenge...
+                                    </h3>
+                                </div>
+
+                                <!-- Interactive Option Tiles Grid -->
+                                <div class="arcade-options-grid" id="arcadeOptionsGrid">
+                                    <!-- Dynamic Option Tiles Injected by app.js -->
+                                </div>
+
+                                <!-- Hint Clue Box (Hidden by default) -->
+                                <div class="hint-callout-box" id="arcadeHintBox" style="display: none;">
+                                    <i class="fa-solid fa-lightbulb text-amber"></i>
+                                    <span id="arcadeHintText">Need vs Want Rule: Needs are required for survival or daily well-being.</span>
+                                </div>
+
+                                <!-- Lifelines & Controls Toolbar -->
+                                <div class="arcade-lifelines-bar">
+                                    <div class="lifeline-buttons">
+                                        <button class="lifeline-btn" id="btnLifeline5050" title="Eliminate 2 wrong answers">
+                                            <i class="fa-solid fa-scissors"></i> <span>50:50</span>
+                                        </button>
+                                        <button class="lifeline-btn" id="btnLifelineHint" title="Reveal financial clue">
+                                            <i class="fa-solid fa-wand-magic-sparkles"></i> <span>Hint</span>
+                                        </button>
+                                        <button class="lifeline-btn" id="btnLifelineSkip" title="Skip level">
+                                            <i class="fa-solid fa-forward-fast"></i> <span>Skip</span>
+                                        </button>
+                                    </div>
+                                    <span class="arcade-xp-tag" id="arcadeXPTag">+60 XP</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Right Column: Weekly Quests & Universe Overview -->
+                        <div class="arcade-side-column">
+                            <div class="dashboard-card cyber-side-card margin-bottom">
+                                <div class="card-header">
+                                    <h3><i class="fa-solid fa-layer-group text-indigo"></i> Level Universe</h3>
+                                </div>
+                                <div class="cyber-universe-stats">
+                                    <div class="u-stat">
+                                        <span class="u-val" id="sideTotalLevels">10,000</span>
+                                        <span class="u-lbl">Total Levels</span>
+                                    </div>
+                                    <div class="u-stat">
+                                        <span class="u-val text-emerald" id="sideCompletedLevels">0</span>
+                                        <span class="u-lbl">Mastered</span>
+                                    </div>
+                                    <div class="u-stat">
+                                        <span class="u-val text-amber" id="sideCurrentTier">Tier 1</span>
+                                        <span class="u-lbl">Active Realm</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="section-card-header">
+                                <h3><i class="fa-solid fa-trophy text-amber"></i> Weekly Quests</h3>
+                                <p>Earn extra XP by completing financial milestones</p>
+                            </div>
+                            <div class="challenges-list" id="challengesList">
+                                <!-- Injected by app.js -->
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 6. BADGES & PROFILE VIEW -->
+                <section class="tab-view" id="view-profile">
+                    <div class="profile-layout">
+                        <!-- Profile Card -->
+                        <div class="dashboard-card profile-card">
+                            <div class="profile-avatar-large" id="profileBigAvatar">🎯</div>
+                            <h2 class="profile-name" id="profileName">Siya</h2>
+                            <p class="profile-tag">Smart Saver & Teen Investor</p>
+                            
+                            <div class="profile-stats-row">
+                                <div class="p-stat">
+                                    <span class="v" id="profileLevel">Level 2</span>
+                                    <span class="l">Current Rank</span>
+                                </div>
+                                <div class="p-stat">
+                                    <span class="v" id="profileXP">420 XP</span>
+                                    <span class="l">Total Earned</span>
+                                </div>
+                                <div class="p-stat">
+                                    <span class="v" id="profileStreak">4 Days</span>
+                                    <span class="l">Active Streak</span>
+                                </div>
+                            </div>
+
+                            <button class="btn-secondary btn-full" id="btnEditProfile">
+                                <i class="fa-solid fa-pen-to-square"></i> Edit Profile & Pocket Money
+                            </button>
+                        </div>
+
+                        <!-- Badges Showcase -->
+                        <div class="dashboard-card badges-card">
+                            <div class="card-header">
+                                <div>
+                                    <h3>Achievement Badges</h3>
+                                    <p>Milestones unlocked in your SpendWise journey</p>
+                                </div>
+                            </div>
+                            <div class="badges-grid" id="badgesGrid">
+                                <!-- Injected by app.js -->
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 7. PARENT & GUARDIAN HUB VIEW -->
+                <section class="tab-view" id="view-parent">
+                    <div class="parent-hero-banner">
+                        <div>
+                            <h2><i class="fa-solid fa-user-shield text-indigo"></i> Parent & Guardian Portal</h2>
+                            <p>Monitor your teen's spending, approve savings goals, and grant chore allowance top-ups.</p>
+                        </div>
+                        <button class="btn-primary" id="btnParentTopupModal">
+                            <i class="fa-solid fa-coins"></i> Send Allowance Top-Up
+                        </button>
+                    </div>
+
+                    <div class="section-title-row margin-top">
+                        <h3><i class="fa-solid fa-graduation-cap"></i> Monitored Teen Accounts</h3>
+                    </div>
+                    <div class="parent-teen-grid" id="parentTeenGrid">
+                        <!-- Injected by app.js -->
+                    </div>
+
+                    <div class="dashboard-grid-2col margin-top">
+                        <div class="dashboard-card">
+                            <div class="card-header">
+                                <h3><i class="fa-solid fa-bullseye text-cyan"></i> Kids Savings Goals Monitor</h3>
+                            </div>
+                            <div id="parentGoalsMonitor" style="margin-top:1rem;">
+                                <!-- Injected by app.js -->
+                            </div>
+                        </div>
+
+                        <div class="dashboard-card">
+                            <div class="card-header">
+                                <h3><i class="fa-solid fa-hourglass-half text-purple"></i> 48h Impulse Pause Monitor</h3>
+                            </div>
+                            <div id="parentImpulseMonitor" style="margin-top:1rem;">
+                                <!-- Injected by app.js -->
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 8. ADMIN CONTROL PANEL VIEW -->
+                <section class="tab-view" id="view-admin">
+                    <div class="admin-hero-banner">
+                        <div>
+                            <h2><i class="fa-solid fa-crown text-amber"></i> System Administrator Control Panel</h2>
+                            <p>Full system authority to manage accounts, update user roles, view expense audit trails, and create trivia quizzes.</p>
+                        </div>
+                        <button class="btn-primary" id="btnAdminAddQuizModal">
+                            <i class="fa-solid fa-plus"></i> Add Custom Quiz Question
+                        </button>
+                    </div>
+
+                    <div class="admin-metrics-row margin-top">
+                        <div class="admin-metric-card">
+                            <div class="a-icon bg-indigo"><i class="fa-solid fa-users"></i></div>
+                            <div>
+                                <h4 id="adminTotalUsers">4</h4>
+                                <span>Total Users</span>
+                            </div>
+                        </div>
+                        <div class="admin-metric-card">
+                            <div class="a-icon bg-emerald"><i class="fa-solid fa-wallet"></i></div>
+                            <div>
+                                <h4 id="adminTotalFunds">₹25,000</h4>
+                                <span>Total Managed Funds</span>
+                            </div>
+                        </div>
+                        <div class="admin-metric-card">
+                            <div class="a-icon bg-purple"><i class="fa-solid fa-receipt"></i></div>
+                            <div>
+                                <h4 id="adminTotalExpenses">12</h4>
+                                <span>Logged Expenses</span>
+                            </div>
+                        </div>
+                        <div class="admin-metric-card">
+                            <div class="a-icon bg-amber"><i class="fa-solid fa-gamepad"></i></div>
+                            <div>
+                                <h4 id="adminTotalQuizzes">4</h4>
+                                <span>Trivia Quizzes</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- All Accounts Table -->
+                    <div class="dashboard-card full-width-card margin-top">
+                        <div class="card-header">
+                            <div>
+                                <h3><i class="fa-solid fa-users-gear text-indigo"></i> Account Role & Allowance Management</h3>
+                                <p>Manage roles, adjust pocket money, or delete user accounts</p>
+                            </div>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>User Account</th>
+                                        <th>Role</th>
+                                        <th>Allowance</th>
+                                        <th>Balance</th>
+                                        <th>Rank & XP</th>
+                                        <th class="text-right">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="adminUsersTable">
+                                    <!-- Injected by app.js -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Expense Audit Trail -->
+                    <div class="dashboard-card full-width-card margin-top">
+                        <div class="card-header">
+                            <div>
+                                <h3><i class="fa-solid fa-list-check text-emerald"></i> System Expense Audit Log</h3>
+                                <p>Complete audit trail of all transactions recorded by any user</p>
+                            </div>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>User Name</th>
+                                        <th>Expense Title</th>
+                                        <th>Category</th>
+                                        <th>Date</th>
+                                        <th class="text-right">Amount</th>
+                                    </tr>
+                                </thead>
+                    <!-- Question Database Explorer & Admin Quiz Management Card -->
+                    <div class="dashboard-card full-width-card margin-top">
+                        <div class="card-header flex-between flex-wrap gap-sm">
+                            <div>
+                                <h3><i class="fa-solid fa-gamepad text-amber"></i> 10,000+ Level Question Directory & Expansion Manager</h3>
+                                <p>Search, test, edit, and add custom levels to infinitely expand the question universe</p>
+                            </div>
+                            <div class="flex-row gap-xs flex-wrap">
+                                <button class="btn-secondary btn-sm" id="btnAdminBatchAdd">
+                                    <i class="fa-solid fa-layer-group"></i> Quick +100 Levels
+                                </button>
+                                <button class="btn-primary btn-sm" id="btnAdminAddQuizModal2">
+                                    <i class="fa-solid fa-plus"></i> Add Custom Level
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Search & Filter Controls -->
+                        <div class="admin-quiz-filter-bar margin-top-sm flex-between flex-wrap gap-sm">
+                            <div class="search-input-group" style="flex: 1; min-width: 200px;">
+                                <i class="fa-solid fa-magnifying-glass"></i>
+                                <input type="text" id="adminQuizSearchInput" placeholder="Search by Level #, title, or scenario keyword...">
+                            </div>
+                            <div class="filter-select-group">
+                                <select id="adminQuizCategoryFilter">
+                                    <option value="ALL">All Categories</option>
+                                    <option value="smart_shopping">Smart Shopping 🛒</option>
+                                    <option value="budgeting">Budgeting 💡</option>
+                                    <option value="saving_basics">Saving Basics 🌱</option>
+                                    <option value="mindset">Money Mindset 🧠</option>
+                                    <option value="investing">Stock Market & Index Funds 📈</option>
+                                    <option value="crypto_web3">Crypto & DeFi ⚡</option>
+                                    <option value="real_estate">Real Estate & Assets 🏢</option>
+                                    <option value="tax_wealth">Tax & Financial Freedom 🏛️</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="table-responsive margin-top-sm">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Level #</th>
+                                        <th>Quiz Title</th>
+                                        <th>Category</th>
+                                        <th>Scenario Preview</th>
+                                        <th>Reward</th>
+                                        <th class="text-right">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="adminQuizTableBody">
+                                    <!-- Injected by app.js -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+            </div>
+        </main>
+
+        <!-- Mobile Bottom Navigation Bar (AUTOMATICALLY SHOWN ON MOBILE) -->
+        <nav class="mobile-nav-bar">
+            <button class="mobile-nav-item active" data-tab="overview">
+                <i class="fa-solid fa-chart-pie"></i>
+                <span>Home</span>
+            </button>
+            <button class="mobile-nav-item" data-tab="expenses">
+                <i class="fa-solid fa-receipt"></i>
+                <span>Expenses</span>
+            </button>
+            <button class="mobile-nav-item" data-tab="goals">
+                <i class="fa-solid fa-bullseye"></i>
+                <span>Goals</span>
+            </button>
+            <button class="mobile-nav-item" data-tab="impulse">
+                <i class="fa-solid fa-hourglass-half"></i>
+                <span>Impulse</span>
+            </button>
+            <button class="mobile-nav-item" data-tab="learn">
+                <i class="fa-solid fa-gamepad"></i>
+                <span>Quests</span>
+            </button>
+        </nav>
+    </div>
+
+    <!-- MODAL CONTAINERS -->
+
+    <!-- 1. Add Expense Modal -->
+    <div class="modal-overlay" id="modalExpense">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h3>Record Expense</h3>
+                <button class="modal-close" data-close="modalExpense">&times;</button>
+            </div>
+            <form id="formAddExpense">
+                <div class="form-group">
+                    <label>Title / Description *</label>
+                    <input type="text" id="expTitle" placeholder="e.g. Starbucks Iced Coffee with Friends" required>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Amount (₹) *</label>
+                        <input type="number" id="expAmount" min="1" step="0.5" placeholder="320" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Category *</label>
+                        <select id="expCategory" required>
+                            <option value="Food">🍔 Food & Snacks</option>
+                            <option value="Outings">☕ Outings & Cafes</option>
+                            <option value="Tech">💻 Tech & Accessories</option>
+                            <option value="Entertainment">🎟️ Entertainment / Movies</option>
+                            <option value="Shopping">🛍️ Clothing & Shopping</option>
+                            <option value="Hobbies">📚 Hobbies & Books</option>
+                            <option value="Other">📦 Other</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Date *</label>
+                    <input type="date" id="expDate" required>
+                </div>
+                <div class="form-group">
+                    <label>Notes / Context (Optional)</label>
+                    <input type="text" id="expNotes" placeholder="e.g. Weekend study group treat">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-secondary" data-close="modalExpense">Cancel</button>
+                    <button type="submit" class="btn-primary"><i class="fa-solid fa-check"></i> Save Expense (+10 XP)</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 2. Create Savings Goal Modal -->
+    <div class="modal-overlay" id="modalGoal">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h3>Create New Savings Goal</h3>
+                <button class="modal-close" data-close="modalGoal">&times;</button>
+            </div>
+            <form id="formAddGoal">
+                <div class="form-group">
+                    <label>Goal Item Name *</label>
+                    <input type="text" id="goalTitle" placeholder="e.g. Wireless Noise-Cancelling Headphones" required>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Target Amount (₹) *</label>
+                        <input type="number" id="goalTarget" min="10" placeholder="1299" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Icon Emoji</label>
+                        <select id="goalIcon">
+                            <option value="🎧">🎧 Headphones</option>
+                            <option value="👟">👟 Sneakers</option>
+                            <option value="🎟️">🎟️ Concert Ticket</option>
+                            <option value="📱">📱 Smart Gadget</option>
+                            <option value="🎮">🎮 Gaming Gear</option>
+                            <option value="🎒">🎒 Backpack</option>
+                            <option value="📚">📚 Book Set</option>
+                            <option value="🎯">🎯 Custom Goal</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Target Deadline (Optional)</label>
+                    <input type="date" id="goalDeadline">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-secondary" data-close="modalGoal">Cancel</button>
+                    <button type="submit" class="btn-primary"><i class="fa-solid fa-star"></i> Create Goal (+30 XP)</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 3. Deposit to Goal Modal -->
+    <div class="modal-overlay" id="modalDeposit">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h3 id="depositModalTitle">Deposit Money to Goal</h3>
+                <button class="modal-close" data-close="modalDeposit">&times;</button>
+            </div>
+            <form id="formDepositGoal">
+                <input type="hidden" id="depositGoalId">
+                <div class="form-group">
+                    <label>Available Balance: <strong class="text-emerald" id="depositAvailableBal">₹2,250</strong></label>
+                </div>
+                <div class="form-group">
+                    <label>Deposit Amount (₹) *</label>
+                    <input type="number" id="depositAmount" min="1" placeholder="200" required>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-secondary" data-close="modalDeposit">Cancel</button>
+                    <button type="submit" class="btn-primary"><i class="fa-solid fa-piggy-bank"></i> Confirm Deposit</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 4. Impulse Decision Tool Modal -->
+    <div class="modal-overlay" id="modalImpulse">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h3><i class="fa-solid fa-shield-cat text-purple"></i> Impulse Purchase Pause Test</h3>
+                <button class="modal-close" data-close="modalImpulse">&times;</button>
+            </div>
+            <form id="formAddImpulse">
+                <div class="form-group">
+                    <label>What item do you want to buy? *</label>
+                    <input type="text" id="impItemName" placeholder="e.g. Designer Sneaker Keychain" required>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Price (₹) *</label>
+                        <input type="number" id="impPrice" min="1" placeholder="499" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Category</label>
+                        <select id="impCategory">
+                            <option value="Tech">Tech & Gadgets</option>
+                            <option value="Shopping">Shopping & Fashion</option>
+                            <option value="Food">Food & Treats</option>
+                            <option value="Entertainment">Entertainment</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Is this a NEED or a WANT? *</label>
+                    <div class="radio-toggle-group">
+                        <label class="radio-card">
+                            <input type="radio" name="impNeed" value="0" checked>
+                            <span class="card-btn">
+                                <strong>WANT</strong>
+                                <small>Nice to have, can live without</small>
+                            </span>
+                        </label>
+                        <label class="radio-card">
+                            <input type="radio" name="impNeed" value="1">
+                            <span class="card-btn">
+                                <strong>NEED</strong>
+                                <small>Essential for school or daily life</small>
+                            </span>
+                        </label>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>How often will you actually use this?</label>
+                    <select id="impFreq">
+                        <option value="Daily">Everyday / Daily</option>
+                        <option value="Weekly">Weekly</option>
+                        <option value="Rarely">Rarely / A few times</option>
+                        <option value="Once">One-time gimmick</option>
+                    </select>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-secondary" data-close="modalImpulse">Cancel</button>
+                    <button type="submit" class="btn-gradient"><i class="fa-solid fa-hourglass"></i> Start 48h Cool-off Timer (+40 XP)</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 5. Impulse Reflection / Resolve Modal -->
+    <div class="modal-overlay" id="modalResolveImpulse">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h3>48-Hour Reflection & Decision</h3>
+                <button class="modal-close" data-close="modalResolveImpulse">&times;</button>
+            </div>
+            <form id="formResolveImpulse">
+                <input type="hidden" id="resolveItemId">
+                <div class="resolve-summary-box" id="resolveSummaryText">
+                    <!-- Injected by app.js -->
+                </div>
+                <div class="form-group">
+                    <label>Reflection Notes</label>
+                    <input type="text" id="resolveNotes" placeholder="e.g. Realized I didn't care about it after two days!">
+                </div>
+                <div class="modal-footer flex-space">
+                    <button type="button" class="btn-success" id="btnActionSaveMoney">
+                        <i class="fa-solid fa-piggy-bank"></i> I Saved Money! (+150 XP 🎉)
+                    </button>
+                    <button type="button" class="btn-danger" id="btnActionBuyPlanned">
+                        <i class="fa-solid fa-cart-shopping"></i> Buy as Planned Expense
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 6. Edit Profile Modal -->
+    <div class="modal-overlay" id="modalProfile">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h3>Edit Profile Settings</h3>
+                <button class="modal-close" data-close="modalProfile">&times;</button>
+            </div>
+            <form id="formEditProfile">
+                <div class="form-group">
+                    <label>Your Name *</label>
+                    <input type="text" id="editProfileName" required>
+                </div>
+                <div class="form-group">
+                    <label>Monthly Pocket Money (₹) *</label>
+                    <input type="number" id="editPocketMoney" min="0" step="100" placeholder="e.g. 4000 (Set 0 to test onboarding)" required>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-secondary" data-close="modalProfile">Cancel</button>
+                    <button type="submit" class="btn-primary">Save Profile Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 7. Arcade Victory Celebration Modal -->
+    <div class="modal-overlay" id="modalTriviaVictory">
+        <div class="modal-box victory-modal-box">
+            <div class="victory-header">
+                <div class="trophy-sparkle-icon">🏆</div>
+                <h2 class="victory-title">TRIVIA ARENA CLEARED!</h2>
+                <p class="victory-subtitle">Master Financial Mindset Achieved!</p>
+            </div>
+
+            <div class="victory-stats-grid">
+                <div class="v-stat-card">
+                    <span class="v-stat-val text-emerald" id="victoryScore">4/4</span>
+                    <span class="v-stat-lbl">Questions Correct</span>
+                </div>
+                <div class="v-stat-card">
+                    <span class="v-stat-val text-amber" id="victoryStreak">3x</span>
+                    <span class="v-stat-lbl">Max Streak</span>
+                </div>
+                <div class="v-stat-card">
+                    <span class="v-stat-val text-purple" id="victoryXP">+280 XP</span>
+                    <span class="v-stat-lbl">Total XP Earned</span>
+                </div>
+            </div>
+
+            <div class="victory-message-box">
+                <p id="victoryMessageText">Outstanding financial wisdom! You avoided the impulse traps and proved your money mastery.</p>
+            </div>
+
+            <div class="modal-footer flex-center">
+                <button class="btn-gradient btn-lg" id="btnCollectVictoryXP">
+                    <i class="fa-solid fa-star"></i> Collect XP & Continue
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 7b. World Stage Map Modal -->
+    <div class="modal-overlay" id="modalWorldMap">
+        <div class="modal-box modal-lg">
+            <div class="modal-header">
+                <h3><i class="fa-solid fa-map-location-dot text-indigo"></i> 10,000 Level Financial Realm Map</h3>
+                <button class="modal-close" data-close="modalWorldMap">&times;</button>
+            </div>
+            <div class="world-map-body">
+                <p class="text-muted margin-bottom-sm">Explore all 10 Financial Tiers, unlock Boss checkpoints, and jump to any level realm!</p>
+                <div class="world-tiers-grid" id="worldTiersGrid">
+                    <!-- Dynamic Tiers injected by app.js -->
+                </div>
+            </div>
+            <div class="modal-footer flex-space">
+                <div class="cyber-jump-inline">
+                    <input type="number" id="mapJumpInput" min="1" max="10000" placeholder="Type level # (e.g. 500)">
+                    <button class="btn-primary btn-sm" id="btnMapJump">Jump to Level ⚡</button>
+                </div>
+                <button type="button" class="btn-secondary" data-close="modalWorldMap">Close Map</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 7b. Admin Manager Login Modal -->
+    <div class="modal-overlay" id="modalAdminLogin" style="display:none;">
+        <div class="modal-box" style="max-width: 420px; border: 1px solid rgba(234, 179, 8, 0.4); box-shadow: 0 10px 30px rgba(234, 179, 8, 0.15);">
+            <div class="modal-header">
+                <h3 style="color: #facc15; display: flex; align-items: center; gap: 8px;">
+                    <i class="fa-solid fa-crown"></i> Admin Manager Sign In
+                </h3>
+                <button class="modal-close" data-close="modalAdminLogin">&times;</button>
+            </div>
+            <form id="formAdminModalLogin">
+                <div class="modal-body" style="padding: 1.25rem 0;">
+                    <div style="background: rgba(234, 179, 8, 0.08); border-left: 3px solid #eab308; padding: 10px 12px; border-radius: 6px; margin-bottom: 15px; font-size: 0.88rem; color: #cbd5e1;">
+                        Enter your Admin credentials to access the <strong>Admin Manager Control Panel</strong>.
+                    </div>
+                    <div class="form-group" style="margin-bottom: 12px;">
+                        <label>Admin Username *</label>
+                        <input type="text" id="adminLoginUsername" placeholder="Enter your admin username" required autocomplete="username" />
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label>Admin Password *</label>
+                        <div class="password-input-wrap">
+                            <input type="password" id="adminLoginPassword" placeholder="Enter your admin password" required autocomplete="current-password" />
+                            <button type="button" class="toggle-pw-btn" onclick="togglePasswordVisibility('adminLoginPassword', this)" tabindex="-1"><i class="fa-solid fa-eye"></i></button>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer" style="padding-top: 10px;">
+                    <button type="button" class="btn-secondary" data-close="modalAdminLogin">Cancel</button>
+                    <button type="submit" class="btn-primary" style="background: linear-gradient(135deg, #eab308, #ca8a04); color: #0f172a; font-weight: 700; border: none;">
+                        <i class="fa-solid fa-right-to-bracket"></i> Sign In as Admin
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 8. Admin Add Trivia Quiz Modal -->
+    <div class="modal-overlay" id="modalAdminQuiz">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h3><i class="fa-solid fa-gamepad text-amber"></i> Create Custom Level Question</h3>
+                <button class="modal-close" data-close="modalAdminQuiz">&times;</button>
+            </div>
+            <form id="formAdminAddQuiz">
+                <div class="form-row">
+                    <div class="form-group" style="flex: 2;">
+                        <label>Quiz Title *</label>
+                        <input type="text" id="adminQuizTitle" placeholder="e.g. Saving for College" required>
+                    </div>
+                    <div class="form-group" style="flex: 1;">
+                        <label>Target Level # *</label>
+                        <input type="number" id="adminQuizLevel" min="1" placeholder="Auto" required>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Category *</label>
+                        <select id="adminQuizCategory">
+                            <option value="smart_shopping">Smart Shopping 🛒</option>
+                            <option value="budgeting">Budgeting 💡</option>
+                            <option value="saving_basics">Saving Basics 🌱</option>
+                            <option value="mindset">Money Mindset 🧠</option>
+                            <option value="investing">Stock Market & Index Funds 📈</option>
+                            <option value="crypto_web3">Crypto & DeFi ⚡</option>
+                            <option value="real_estate">Real Estate & Assets 🏢</option>
+                            <option value="tax_wealth">Tax & Financial Freedom 🏛️</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>XP Reward *</label>
+                        <input type="number" id="adminQuizPoints" min="10" value="60" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Scenario Question *</label>
+                    <textarea id="adminQuizScenario" rows="3" placeholder="Enter scenario question for teens..." required></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Option A *</label>
+                    <input type="text" id="adminQuizOptA" placeholder="First choice" required>
+                </div>
+                <div class="form-group">
+                    <label>Option B *</label>
+                    <input type="text" id="adminQuizOptB" placeholder="Second choice" required>
+                </div>
+                <div class="form-group">
+                    <label>Option C *</label>
+                    <input type="text" id="adminQuizOptC" placeholder="Third choice" required>
+                </div>
+                <div class="form-group">
+                    <label>Option D *</label>
+                    <input type="text" id="adminQuizOptD" placeholder="Fourth choice" required>
+                </div>
+                <div class="form-group">
+                    <label>Correct Option *</label>
+                    <select id="adminQuizCorrect" required>
+                        <option value="1">Option A</option>
+                        <option value="2">Option B</option>
+                        <option value="3">Option C</option>
+                        <option value="4">Option D</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Explanation Clue *</label>
+                    <input type="text" id="adminQuizExplanation" placeholder="Explain why this choice is financially smart..." required>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-secondary" data-close="modalAdminQuiz">Cancel</button>
+                    <button type="submit" class="btn-primary"><i class="fa-solid fa-plus"></i> Save Quiz Question</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 9. Parent Top-up Modal -->
+    <div class="modal-overlay" id="modalParentTopup">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h3>Parent Allowance & Bonus Top-Up</h3>
+                <button class="modal-close" data-close="modalParentTopup">&times;</button>
+            </div>
+            <form id="formParentTopup">
+                <div class="form-group">
+                    <label>Select Teen Account *</label>
+                    <select id="parentTopupUserSelect" required>
+                        <!-- Injected by app.js -->
+                    </select>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Allowance Top-Up (₹) *</label>
+                        <input type="number" id="parentTopupAmount" min="10" value="500" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Bonus XP Reward</label>
+                        <input type="number" id="parentTopupXP" min="0" value="50">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Note / Chore Reason</label>
+                    <input type="text" id="parentTopupNote" placeholder="e.g. Good grades in Math exam!">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-secondary" data-close="modalParentTopup">Cancel</button>
+                    <button type="submit" class="btn-primary"><i class="fa-solid fa-gift"></i> Send Top-Up & Reward</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 10. Admin Edit User Role Modal -->
+    <div class="modal-overlay" id="modalAdminEditUser">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h3>Edit User Role & Allowance</h3>
+                <button class="modal-close" data-close="modalAdminEditUser">&times;</button>
+            </div>
+            <form id="formAdminEditUser">
+                <input type="hidden" id="adminEditUserId">
+                <div class="form-group">
+                    <label>User Name: <strong id="adminEditUserName">Teen</strong></label>
+                </div>
+                <div class="form-group">
+                    <label>Assign Role *</label>
+                    <select id="adminEditRole" required>
+                        <option value="teen">Teen User 🎯</option>
+                        <option value="parent">Parent / Guardian 🛡️</option>
+                        <option value="admin">Admin Manager 👑</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Monthly Allowance (₹) *</label>
+                    <input type="number" id="adminEditAllowance" min="0" required>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-secondary" data-close="modalAdminEditUser">Cancel</button>
+                    <button type="submit" class="btn-primary">Save Account Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Toast Notification Container -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <!-- JS Script -->
+    <script src="app.js"></script>
+</body>
+</html>
