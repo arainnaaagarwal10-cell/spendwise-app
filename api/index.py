@@ -59,13 +59,10 @@ def get_db():
     
     parsed_params = parse_database_url(database_url)
     if parsed_params:
-        try:
-            return psycopg2.connect(
-                cursor_factory=psycopg2.extras.RealDictCursor,
-                **parsed_params
-            )
-        except Exception:
-            pass
+        return psycopg2.connect(
+            cursor_factory=psycopg2.extras.RealDictCursor,
+            **parsed_params
+        )
 
     return psycopg2.connect(database_url, cursor_factory=psycopg2.extras.RealDictCursor)
 
