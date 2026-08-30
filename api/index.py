@@ -205,14 +205,14 @@ class handler(BaseHTTPRequestHandler):
         qs = parse_qs(parsed_self.query)
         if 'path' in qs and qs['path']:
             subpath = qs['path'][0].lstrip('/')
-            return f"/api/{subpath}"
+            return f"/api/{subpath}" if subpath else "/api"
 
         raw_path = self.headers.get('x-forwarded-uri') or self.headers.get('x-matched-path') or self.path
         parsed = urlparse(raw_path)
         path = parsed.path.rstrip('/')
         if path == '/api/index.py' or path == '/api' or not path:
             path = parsed_self.path.rstrip('/')
-        return path
+        return path or '/api'
 
     # ── GET Routes ─────────────────────────────────────────────────────────
     def do_GET(self):
@@ -352,8 +352,17 @@ class handler(BaseHTTPRequestHandler):
                     'goal_count': goal_count,
                 })
 
+            # GET /api status route
+            elif path in ['/api', '/api/', '/api/index.py', '/']:
+                self.send_json({
+                    'success': True,
+                    'status': 'online',
+                    'message': 'SpendWise API is live and operational! 🚀',
+                    'endpoints': ['/api/user', '/api/users', '/api/stats', '/api/expenses', '/api/goals', '/api/should-i-buy', '/api/challenges', '/api/quizzes']
+                })
+
             else:
-                self.send_json({'error': 'Endpoint not found'}, 404)
+                self.send_json({'error': f'Endpoint not found: {path}'}, 404)
 
         except Exception as e:
             self.send_json({'error': str(e)}, 500)
