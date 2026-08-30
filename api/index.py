@@ -1,6 +1,7 @@
 import json
 import os
 import re
+import socket
 import datetime
 import urllib.parse
 import psycopg2
@@ -61,17 +62,26 @@ def get_db():
     last_error = None
     
     if parsed_params:
-        try:
-            return psycopg2.connect(
-                cursor_factory=psycopg2.extras.RealDictCursor,
-                **parsed_params
-            )
-        except Exception as e:
-            last_error = e
-
-        # If direct connection to db.<ref>.supabase.co fails (e.g. IPv6 issue on Vercel),
-        # automatically fallback to Supabase IPv4 Pooler connection
         host = parsed_params.get('host', '')
+        
+        # Check if host has an IPv4 address on this network environment
+        has_ipv4 = True
+        try:
+            socket.gethostbyname(host)
+        except Exception:
+            has_ipv4 = False
+
+        if has_ipv4:
+            try:
+                return psycopg2.connect(
+                    cursor_factory=psycopg2.extras.RealDictCursor,
+                    **parsed_params
+                )
+            except Exception as e:
+                last_error = e
+
+        # If direct host has no IPv4 address (e.g. Supabase db.<ref>.supabase.co on Vercel IPv4),
+        # automatically connect via Supabase IPv4 Pooler host
         m = re.match(r'^db\.([a-z0-9]+)\.supabase\.co$', host)
         if m:
             project_ref = m.group(1)
@@ -97,7 +107,7 @@ def get_db():
                             password=password,
                             dbname=dbname,
                             sslmode=sslmode,
-                            connect_timeout=3,
+                            connect_timeout=2,
                             cursor_factory=psycopg2.extras.RealDictCursor
                         )
                     except Exception as pooler_err:
