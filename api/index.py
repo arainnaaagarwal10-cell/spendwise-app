@@ -184,6 +184,21 @@ class handler(BaseHTTPRequestHandler):
         self.send_response(200)
         self.end_headers()
 
+    def send_file(self, filepath, content_type='text/html; charset=utf-8'):
+        try:
+            if os.path.exists(filepath):
+                with open(filepath, 'rb') as f:
+                    content = f.read()
+                self.send_response(200)
+                self.send_header('Content-Type', content_type)
+                self.send_header('Content-Length', str(len(content)))
+                self.end_headers()
+                self.wfile.write(content)
+                return True
+        except Exception:
+            pass
+        return False
+
     def send_json(self, data, status=200):
         self.send_response(status)
         self.send_header('Content-Type', 'application/json')
@@ -221,6 +236,18 @@ class handler(BaseHTTPRequestHandler):
         path = self.get_request_path()
         query = parse_qs(parsed.query)
         user_id = safe_int(query.get('user_id', [1])[0], 1)
+
+        # Serve static HTML/CSS/JS for web app UI requests
+        proj_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+        if path in ['/', '/index.html', '']:
+            if self.send_file(os.path.join(proj_dir, 'index.html'), 'text/html; charset=utf-8'):
+                return
+        elif path == '/style.css':
+            if self.send_file(os.path.join(proj_dir, 'style.css'), 'text/css; charset=utf-8'):
+                return
+        elif path == '/app.js':
+            if self.send_file(os.path.join(proj_dir, 'app.js'), 'application/javascript; charset=utf-8'):
+                return
 
         try:
             conn = get_db()
