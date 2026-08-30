@@ -177,10 +177,20 @@ class handler(BaseHTTPRequestHandler):
                 return {}
         return {}
 
+    def get_request_path(self):
+        raw_path = self.headers.get('x-forwarded-uri') or self.headers.get('x-matched-path') or self.path
+        parsed = urlparse(raw_path)
+        path = parsed.path.rstrip('/')
+        if path == '/api/index.py' or path == '/api' or not path:
+            parsed_self = urlparse(self.path)
+            path = parsed_self.path.rstrip('/')
+        return path
+
     # ── GET Routes ─────────────────────────────────────────────────────────
     def do_GET(self):
-        parsed = urlparse(self.path)
-        path = parsed.path
+        raw_path = self.headers.get('x-forwarded-uri') or self.headers.get('x-matched-path') or self.path
+        parsed = urlparse(raw_path)
+        path = self.get_request_path()
         query = parse_qs(parsed.query)
         user_id = safe_int(query.get('user_id', [1])[0], 1)
 
@@ -205,9 +215,17 @@ class handler(BaseHTTPRequestHandler):
                 if not row:
                     cursor.execute('SELECT * FROM users ORDER BY id ASC LIMIT 1')
                     row = cursor.fetchone()
-                user = dict(row)
-                cursor.execute('SELECT * FROM user_badges WHERE user_id = %s', (user['id'],))
-                user['badges'] = [dict(r) for r in cursor.fetchall()]
+                if row:
+                    user = dict(row)
+                    cursor.execute('SELECT * FROM user_badges WHERE user_id = %s', (user['id'],))
+                    user['badges'] = [dict(r) for r in cursor.fetchall()]
+                else:
+                    user = {
+                        'id': 1, 'name': 'Student User', 'username': 'student', 'role': 'teen',
+                        'age': 16, 'pocket_money': 1000.0, 'balance': 1000.0, 'points': 0,
+                        'coins': 0, 'level': 1, 'streak': 1, 'avatar': '🎯', 'is_onboarded': 1,
+                        'badges': []
+                    }
                 self.send_json({'success': True, 'user': user})
 
             # GET /api/expenses
@@ -316,8 +334,7 @@ class handler(BaseHTTPRequestHandler):
 
     # ── POST Routes ────────────────────────────────────────────────────────
     def do_POST(self):
-        parsed = urlparse(self.path)
-        path = parsed.path
+        path = self.get_request_path()
         body = self.parse_body()
 
         try:
