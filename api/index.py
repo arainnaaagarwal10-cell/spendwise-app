@@ -15,43 +15,66 @@ from urllib.parse import parse_qs, urlparse
 
 def parse_database_url(url):
     url = url.strip()
-    if url.startswith('postgresql://') or url.startswith('postgres://'):
-        pattern = r'^(?:postgres(?:ql)?://)(.*)@([^/@:]+)(?::(\d+))?(?:/([^?#]*))?(?:\?(.*))?$'
-        m = re.match(pattern, url)
-        if m:
-            user_pass, host, port, dbname, query_str = m.groups()
-            user = 'postgres'
-            password = ''
-            if ':' in user_pass:
-                parts = user_pass.split(':', 1)
-                user = urllib.parse.unquote(parts[0])
-                password = urllib.parse.unquote(parts[1])
-            else:
-                user = urllib.parse.unquote(user_pass)
-            
-            # Strip literal square brackets around password if left from template placeholder [PASSWORD]
-            if password.startswith('[') and password.endswith(']'):
-                password = password[1:-1]
-                
-            host = host or 'localhost'
-            port = int(port) if port else 5432
-            dbname = dbname or 'postgres'
-            
-            sslmode = 'require'
-            if query_str:
-                qs = urllib.parse.parse_qs(query_str)
-                if 'sslmode' in qs:
-                    sslmode = qs['sslmode'][0]
-                    
-            return {
-                'host': host,
-                'port': port,
-                'user': user,
-                'password': password,
-                'dbname': dbname,
-                'sslmode': sslmode
-            }
-    return None
+    if url.startswith('postgresql://'):
+        rest = url[len('postgresql://'):]
+    elif url.startswith('postgres://'):
+        rest = url[len('postgres://'):]
+    else:
+        return None
+        
+    query_str = ''
+    if '?' in rest:
+        rest, query_str = rest.split('?', 1)
+        
+    dbname = 'postgres'
+    if '/' in rest:
+        rest, dbname = rest.rsplit('/', 1)
+        
+    if '@' in rest:
+        user_pass, host_port = rest.rsplit('@', 1)
+    else:
+        user_pass = ''
+        host_port = rest
+
+    port = 5432
+    if ':' in host_port:
+        host, port_str = host_port.split(':', 1)
+        try:
+            port = int(port_str)
+        except ValueError:
+            pass
+    else:
+        host = host_port
+
+    user = 'postgres'
+    password = ''
+    if ':' in user_pass:
+        parts = user_pass.split(':', 1)
+        user = urllib.parse.unquote(parts[0])
+        password = urllib.parse.unquote(parts[1])
+    elif user_pass:
+        user = urllib.parse.unquote(user_pass)
+
+    if password.startswith('[') and password.endswith(']'):
+        password = password[1:-1]
+
+    host = host or 'localhost'
+    dbname = dbname or 'postgres'
+
+    sslmode = 'require'
+    if query_str:
+        qs = urllib.parse.parse_qs(query_str)
+        if 'sslmode' in qs:
+            sslmode = qs['sslmode'][0]
+
+    return {
+        'host': host,
+        'port': port,
+        'user': user,
+        'password': password,
+        'dbname': dbname,
+        'sslmode': sslmode
+    }
 
 def get_db():
     database_url = os.environ.get('DATABASE_URL')
