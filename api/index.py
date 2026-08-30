@@ -58,11 +58,53 @@ def get_db():
         raise RuntimeError("DATABASE_URL environment variable is not set.")
     
     parsed_params = parse_database_url(database_url)
+    last_error = None
+    
     if parsed_params:
-        return psycopg2.connect(
-            cursor_factory=psycopg2.extras.RealDictCursor,
-            **parsed_params
-        )
+        try:
+            return psycopg2.connect(
+                cursor_factory=psycopg2.extras.RealDictCursor,
+                **parsed_params
+            )
+        except Exception as e:
+            last_error = e
+
+        # If direct connection to db.<ref>.supabase.co fails (e.g. IPv6 issue on Vercel),
+        # automatically fallback to Supabase IPv4 Pooler connection
+        host = parsed_params.get('host', '')
+        m = re.match(r'^db\.([a-z0-9]+)\.supabase\.co$', host)
+        if m:
+            project_ref = m.group(1)
+            user = parsed_params.get('user', 'postgres')
+            pooler_user = user if f'.{project_ref}' in user else f"{user}.{project_ref}"
+            password = parsed_params.get('password', '')
+            dbname = parsed_params.get('dbname', 'postgres')
+            sslmode = parsed_params.get('sslmode', 'require')
+            
+            regions = [
+                'ap-south-1', 'us-east-1', 'eu-central-1', 'ap-southeast-1',
+                'us-west-1', 'sa-east-1', 'eu-west-1', 'ca-central-1',
+                'ap-northeast-1', 'ap-northeast-2', 'ap-southeast-2', 'me-central-1'
+            ]
+            for region in regions:
+                pooler_host = f"aws-0-{region}.pooler.supabase.com"
+                for port in [6543, 5432]:
+                    try:
+                        return psycopg2.connect(
+                            host=pooler_host,
+                            port=port,
+                            user=pooler_user,
+                            password=password,
+                            dbname=dbname,
+                            sslmode=sslmode,
+                            connect_timeout=3,
+                            cursor_factory=psycopg2.extras.RealDictCursor
+                        )
+                    except Exception as pooler_err:
+                        last_error = pooler_err
+                        
+    if last_error:
+        raise last_error
 
     return psycopg2.connect(database_url, cursor_factory=psycopg2.extras.RealDictCursor)
 
