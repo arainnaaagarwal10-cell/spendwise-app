@@ -1,6 +1,8 @@
 import json
 import os
+import re
 import datetime
+import urllib.parse
 import psycopg2
 import psycopg2.extras
 from http.server import BaseHTTPRequestHandler
@@ -10,12 +12,62 @@ from urllib.parse import parse_qs, urlparse
 # Database Connection
 # ────────────────────────────────────────────────────────────────────────────
 
+def parse_database_url(url):
+    url = url.strip()
+    if url.startswith('postgresql://') or url.startswith('postgres://'):
+        pattern = r'^(?:postgres(?:ql)?://)(.*)@([^/@:]+)(?::(\d+))?(?:/([^?#]*))?(?:\?(.*))?$'
+        m = re.match(pattern, url)
+        if m:
+            user_pass, host, port, dbname, query_str = m.groups()
+            user = 'postgres'
+            password = ''
+            if ':' in user_pass:
+                parts = user_pass.split(':', 1)
+                user = urllib.parse.unquote(parts[0])
+                password = urllib.parse.unquote(parts[1])
+            else:
+                user = urllib.parse.unquote(user_pass)
+            
+            # Strip literal square brackets around password if left from template placeholder [PASSWORD]
+            if password.startswith('[') and password.endswith(']'):
+                password = password[1:-1]
+                
+            host = host or 'localhost'
+            port = int(port) if port else 5432
+            dbname = dbname or 'postgres'
+            
+            sslmode = 'require'
+            if query_str:
+                qs = urllib.parse.parse_qs(query_str)
+                if 'sslmode' in qs:
+                    sslmode = qs['sslmode'][0]
+                    
+            return {
+                'host': host,
+                'port': port,
+                'user': user,
+                'password': password,
+                'dbname': dbname,
+                'sslmode': sslmode
+            }
+    return None
+
 def get_db():
     database_url = os.environ.get('DATABASE_URL')
     if not database_url:
         raise RuntimeError("DATABASE_URL environment variable is not set.")
-    conn = psycopg2.connect(database_url, cursor_factory=psycopg2.extras.RealDictCursor)
-    return conn
+    
+    parsed_params = parse_database_url(database_url)
+    if parsed_params:
+        try:
+            return psycopg2.connect(
+                cursor_factory=psycopg2.extras.RealDictCursor,
+                **parsed_params
+            )
+        except Exception:
+            pass
+
+    return psycopg2.connect(database_url, cursor_factory=psycopg2.extras.RealDictCursor)
 
 
 # ────────────────────────────────────────────────────────────────────────────
